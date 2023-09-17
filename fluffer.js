@@ -86,7 +86,7 @@ client.on('interactionCreate', async interaction => {
          value: choice
       }))
    ).catch(console.error);
-}); //End of 
+}); //End of autoComplete
 
 
 client.on("error", (e) => console.error(e));
