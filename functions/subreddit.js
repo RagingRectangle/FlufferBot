@@ -36,7 +36,7 @@ module.exports = {
 
       async function launchPuppeteer() {
          const browser = await puppeteer.launch({
-           headless: false
+           headless: true
          });
          const page = await browser.newPage();
          page.setViewport({
