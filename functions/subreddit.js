@@ -29,6 +29,7 @@ const config = require('../config/config.json');
 module.exports = {
    sub: async function sub(client, interaction, userSearch) {
       await interaction.deferReply();
+
       function getRandomInt(max) {
          return Math.floor(Math.random() * max);
       }
@@ -36,40 +37,37 @@ module.exports = {
 
       async function launchPuppeteer() {
          const browser = await puppeteer.launch({
-           headless: true
+            headless: false
          });
          const page = await browser.newPage();
-         page.setViewport({
-           width: 983,
-           height: 1000
-         })
          await page.goto(`https://www.reddit.com/r/${userSearch}.json`);
          await page.content();
          const res = await page.evaluate(() => {
-           return JSON.parse(document.querySelector("body").innerText);
+            return JSON.parse(document.querySelector("body").innerText);
          });
-       
-         if (res.reason){
-            if (res.reason == 'banned'){
-               await interaction.editReply(`r/${userSearch} has been banned.`).catch(console.error);               browser.close();
+
+         if (res.reason) {
+            if (res.reason == 'banned') {
+               await interaction.editReply(`r/${userSearch} has been banned.`).catch(console.error);
+               browser.close();
                return;
             }
          }
-       
+
          browser.close();
-       
+
          selectPick(res);
-       } //End of launchPuppeteer
+      } //End of launchPuppeteer
 
 
-       async function selectPick(res){
+      async function selectPick(res) {
          for (var i = 0; i < 25; i++) {
             try {
                let rando = getRandomInt(res.data.children.length);
-               if (!res.data.children[rando].data.url_overridden_by_dest){
+               if (!res.data.children[rando].data.url_overridden_by_dest) {
                   continue;
                }
-               if (res.data.children[rando].data.url_overridden_by_dest.includes('gallery')){
+               if (res.data.children[rando].data.url_overridden_by_dest.includes('gallery')) {
                   continue;
                }
 
@@ -91,14 +89,14 @@ module.exports = {
                console.log(err);
             }
 
-            if (i == 24){
+            if (i == 24) {
                await interaction.editReply('Failed to get pic for this subreddit.').catch(console.error);
             }
          } //End of i loop
-       }//End of selectPick()
+      } //End of selectPick()
 
 
-      
+
    }, //End of sub()
 
 
