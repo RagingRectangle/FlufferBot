@@ -23,6 +23,7 @@ const fetch = (...args) => import('node-fetch').then(({
 const fs = require('fs');
 const moment = require('moment');
 const mysql = require('mysql2');
+const puppeteer = require('puppeteer');
 const config = require('../config/config.json');
 
 module.exports = {
@@ -31,27 +32,73 @@ module.exports = {
       function getRandomInt(max) {
          return Math.floor(Math.random() * max);
       }
-      const result = await fetch(`https://www.reddit.com/r/${userSearch}.json`);
-      res = await result.json();
-      for (var i = 0; i < 15; i++) {
-         try {
-            var url = res.data.children[getRandomInt(res.data.children.length)].data.url;
-            let historyCheck = await this.checkSubHistory(interaction, url);
-            if (historyCheck == 'ERROR' || historyCheck[0]['count'] > 0) {
-               if (i == 14) {
-                  await interaction.editReply('Failed to get pic for this subreddit.').catch(console.error);
-               } else {
+      launchPuppeteer();
+
+      async function launchPuppeteer() {
+         const browser = await puppeteer.launch({
+           headless: false
+         });
+         const page = await browser.newPage();
+         page.setViewport({
+           width: 983,
+           height: 1000
+         })
+         await page.goto(`https://www.reddit.com/r/${userSearch}.json`);
+         await page.content();
+         const res = await page.evaluate(() => {
+           return JSON.parse(document.querySelector("body").innerText);
+         });
+       
+         if (res.reason){
+            if (res.reason == 'banned'){
+               await interaction.editReply(`r/${userSearch} has been banned.`).catch(console.error);               browser.close();
+               return;
+            }
+         }
+       
+         browser.close();
+       
+         selectPick(res);
+       } //End of launchPuppeteer
+
+
+       async function selectPick(res){
+         for (var i = 0; i < 25; i++) {
+            try {
+               let rando = getRandomInt(res.data.children.length);
+               if (!res.data.children[rando].data.url_overridden_by_dest){
                   continue;
                }
-            } else {
-               interaction.editReply(url).catch(console.error);
-               this.saveSubData(client, interaction, userSearch, url);
-               break;
+               if (res.data.children[rando].data.url_overridden_by_dest.includes('gallery')){
+                  continue;
+               }
+
+               var url = res.data.children[rando].data.url_overridden_by_dest;
+               //let historyCheck = await this.checkSubHistory(interaction, url);
+               let historyCheck = 'skip';
+               if (historyCheck == 'ERROR' || historyCheck[0]['count'] > 0) {
+                  if (i == 14) {
+                     await interaction.editReply('Failed to get pic for this subreddit.').catch(console.error);
+                  } else {
+                     continue;
+                  }
+               } else {
+                  interaction.editReply(url).catch(console.error);
+                  //this.saveSubData(client, interaction, userSearch, url);
+                  break;
+               }
+            } catch (err) {
+               console.log(err);
             }
-         } catch (err) {
-            await interaction.editReply('Failed to get pic for this subreddit.').catch(console.error);
-         }
-      } //End of i loop
+
+            if (i == 24){
+               await interaction.editReply('Failed to get pic for this subreddit.').catch(console.error);
+            }
+         } //End of i loop
+       }//End of selectPick()
+
+
+      
    }, //End of sub()
 
 
